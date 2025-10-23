@@ -5,8 +5,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-    // Basic token decoding to get user role (for client-side routing)
-    // In a real app, you might want to verify this with the backend
     const parseJwt = (token) => {
         try {
             return JSON.parse(atob(token.split('.')[1]));
@@ -26,6 +24,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     const transactionsTableBody = document.querySelector('#transactionsTable tbody');
     const BACKEND_URL = 'http://localhost:3000';
 
+    const formatIDR = (amount) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount);
+
+    const todayAmountEl = document.getElementById('todayAmount');
+    const weekAmountEl = document.getElementById('weekAmount');
+    const monthAmountEl = document.getElementById('monthAmount');
+    const detailsButtons = document.querySelectorAll('.details-button');
+    const showAllButton = document.getElementById('showAllButton');
+    const filterStatus = document.getElementById('filterStatus');
+
+    let allTransactions = [];
+
     try {
         const response = await fetch(`${BACKEND_URL}/api/transactions`, {
             method: 'GET',
@@ -44,26 +53,49 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
 
-        const transactions = await response.json();
+        allTransactions = await response.json();
 
-        transactions.forEach(tx => {
-            const row = transactionsTableBody.insertRow();
-            row.setAttribute('data-id', tx._id); // Set data-id attribute for the row
-            row.innerHTML = `
-                <td>${tx.Timestamp}</td>
-                <td>${tx['Kode Transaksi']}</td>
-                <td>${tx['Nama Transaksi']}</td>
-                <td>${tx.Admin}</td>
-                <td>${tx.Barang}</td>
-                <td>${tx.Harga}</td>
-                <td>${tx.Metode}</td>
-                <td>${tx.Tuan || '-'}</td>
-                <td>${tx['Nomor HP'] || '-'}</td>
-                <td>${tx.Panjar || '0'}</td>
-                <td>${tx.Sisa || '0'}</td>
-                <td>${tx.Catatan || '-'}</td>
-                <td><button class="delete-button" data-id="${tx._id}">Hapus</button></td>
-            `;
+        // Process transactions for summary cards
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay());
+        startOfWeek.setHours(0, 0, 0, 0);
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+        let todayTotal = 0;
+        let weekTotal = 0;
+        let monthTotal = 0;
+
+        allTransactions.forEach(tx => {
+            const txDate = new Date(tx.Timestamp.split(' ')[0]);
+            if (txDate >= today) {
+                todayTotal += tx.Harga;
+            }
+            if (txDate >= startOfWeek) {
+                weekTotal += tx.Harga;
+            }
+            if (txDate >= startOfMonth) {
+                monthTotal += tx.Harga;
+            }
+        });
+
+        todayAmountEl.textContent = formatIDR(todayTotal);
+        weekAmountEl.textContent = formatIDR(weekTotal);
+        monthAmountEl.textContent = formatIDR(monthTotal);
+
+        populateTable(allTransactions);
+        filterStatus.textContent = 'Menampilkan Semua Transaksi';
+
+        detailsButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const period = button.dataset.period;
+                filterAndDisplayTransactions(period);
+            });
+        });
+
+        showAllButton.addEventListener('click', () => {
+            populateTable(allTransactions);
+            filterStatus.textContent = 'Menampilkan Semua Transaksi';
         });
 
         transactionsTableBody.addEventListener('click', async (event) => {
@@ -81,6 +113,52 @@ document.addEventListener('DOMContentLoaded', async () => {
         alert('Failed to load transactions.');
     }
 
+    function populateTable(transactions) {
+        transactionsTableBody.innerHTML = '';
+        transactions.forEach(tx => {
+            const row = transactionsTableBody.insertRow();
+            row.setAttribute('data-id', tx._id);
+            row.innerHTML = `
+                <td>${tx.Timestamp}</td>
+                <td>${tx['Kode Transaksi']}</td>
+                <td>${tx['Nama Transaksi']}</td>
+                <td>${tx.Admin}</td>
+                <td>${tx.Barang}</td>
+                <td>${formatIDR(tx.Harga)}</td>
+                <td>${tx.Metode}</td>
+                <td>${tx.Tuan || '-' }</td>
+                <td>${tx['Nomor HP'] || '-' }</td>
+                <td>${formatIDR(tx.Panjar || 0)}</td>
+                <td>${formatIDR(tx.Sisa || 0)}</td>
+                <td>${tx.Catatan || '-' }</td>
+                <td><button class="delete-button" data-id="${tx._id}">Hapus</button></td>
+            `;
+        });
+    }
+
+    function filterAndDisplayTransactions(period) {
+        let filteredTransactions = [];
+        const now = new Date();
+        let statusText = '';
+
+        if (period === 'today') {
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            filteredTransactions = allTransactions.filter(tx => new Date(tx.Timestamp.split(' ')[0]) >= today);
+            statusText = 'Transaksi Hari Ini';
+        } else if (period === 'week') {
+            const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay());
+            startOfWeek.setHours(0, 0, 0, 0);
+            filteredTransactions = allTransactions.filter(tx => new Date(tx.Timestamp.split(' ')[0]) >= startOfWeek);
+            statusText = 'Transaksi Pekan Ini';
+        } else if (period === 'month') {
+            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+            filteredTransactions = allTransactions.filter(tx => new Date(tx.Timestamp.split(' ')[0]) >= startOfMonth);
+            statusText = 'Transaksi Bulan Ini';
+        }
+        populateTable(filteredTransactions);
+        filterStatus.textContent = statusText;
+    }
+
     async function deleteTransaction(id, token) {
         try {
             const response = await fetch(`${BACKEND_URL}/api/transactions/${id}`, {
@@ -92,11 +170,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (response.ok) {
                 alert('Transaksi berhasil dihapus.');
-                // Remove the row from the table
-                const row = document.querySelector(`tr[data-id='${id}']`);
-                if (row) {
-                    row.remove();
-                }
+                allTransactions = allTransactions.filter(tx => tx._id !== id);
+                populateTable(allTransactions);
+                // Recalculate summaries
+                // This is a simplified approach; a more robust solution might update totals without a full re-render
+                window.location.reload();
             } else {
                 const result = await response.json();
                 throw new Error(result.message || 'Gagal menghapus transaksi.');
