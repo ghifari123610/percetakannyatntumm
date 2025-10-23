@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pengaturan Akun - Percetakan 21</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #121212;
+            color: #e0e0e0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .settings-container {
+            background-color: #1e1e1e;
+            padding: 30px;
+            border-radius: 14px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            width: 400px;
+            text-align: center;
+        }
+        .settings-container h2 {
+            margin-bottom: 20px;
+            color: #7e57c2;
+        }
+        .settings-container input[type="text"],
+        .settings-container input[type="password"] {
+            width: calc(100% - 20px);
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #2c2c2c;
+            border-radius: 8px;
+            background-color: #151515;
+            color: #e0e0e0;
+            font-size: 16px;
+        }
+        .settings-container button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            background-color: #7e57c2;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-top: 10px;
+        }
+        .settings-container button:hover {
+            background-color: #5e35b1;
+        }
+        .settings-container .message {
+            margin-top: 15px;
+            font-size: 14px;
+        }
+        .settings-container .success {
+            color: #66bb6a;
+        }
+        .settings-container .error {
+            color: #ef5350;
+        }
+        .back-button {
+            background-color: #5c6bc0 !important;
+            margin-top: 20px !important;
+        }
+        .back-button:hover {
+            background-color: #4a5a96 !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="settings-container">
+        <h2>Pengaturan Akun</h2>
+        <form id="settingsForm">
+            <input type="text" id="currentUsername" placeholder="Username Saat Ini" required disabled>
+            <input type="password" id="currentPassword" placeholder="Password Saat Ini" required>
+            <input type="password" id="newPassword" placeholder="Password Baru">
+            <input type="password" id="confirmNewPassword" placeholder="Konfirmasi Password Baru">
+            <button type="submit">Update Password</button>
+            <div class="message" id="message"></div>
+        </form>
+        <button id="backButton" class="back-button">Kembali</button>
+    </div>
+    <script src="js/settings.js"></script>
+</body>
+</html>

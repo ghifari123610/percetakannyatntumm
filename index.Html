@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Percetakan 21 — Admin 2</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<script>
+    const token = localStorage.getItem('token');
+    if (!token) {
+        window.location.href = 'login.html';
+    } else {
+        // Optionally, verify token with backend to ensure it's still valid
+        // For now, we'll assume a token in localStorage is sufficient to proceed
+    }
+</script>
+<header>
+<div class="title">Percetakan 21 — Admin 2</div>
+<span class="small" id="shiftStatus">Belum mulai</span>
+<span class="small" id="tzDebug" style="margin-left:8px;opacity:.8"></span>
+<button class="btn btn-green" id="btnStart" type="button">Mulai berjualan</button>
+<button class="btn btn-blue" id="btnClose" type="button" disabled>Tutup kas</button>
+<span class="small" id="btnReset" style="cursor:pointer;text-decoration:underline;margin-left:8px">Reset Shift</span>
+<button class="btn btn-green" id="btnSettings" type="button" style="margin-left:8px">Pengaturan</button>
+<button class="btn btn-blue" id="btnLogout" type="button" style="margin-left:8px">Logout</button>
+</header>
+<main class="container">
+<section class="card" id="colMid">
+<h3>Ringkasan</h3>
+<div class="kpi">
+<div class="box"><div class="hdr">Saldo Awal</div><input id="kSaldoAwal" class="inline-money" placeholder="Rp. 0"/></div>
+<div class="box"><div class="hdr">Cash</div><div class="val align-right" id="kCash">Rp. 0</div><div class="sub">Transaksi Cash: <b id="kCashN">0x</b></div></div>
+<div class="box"><div class="hdr">QRIS</div><div class="val align-right" id="kQris">Rp. 0</div><div class="sub">Transaksi QRIS: <b id="kQrisN">0x</b></div></div>
+<div class="box"><div class="hdr">Omzet (Cash + QRIS)</div><div class="val align-right" id="kOmzet">Rp. 0</div><div class="sub">Jumlah Transaksi: <b id="kOmzetN">0x</b></div></div>
+<div class="box"><div class="hdr">Pengeluaran</div><input id="kExp" class="inline-money" placeholder="Rp. 0"/></div>
+<div class="box"><div class="hdr">Uang Laci</div><div class="val align-right" id="kLaci">Rp. 0</div><div class="sub">Saldo Awal + Cash − Pengeluaran</div></div>
+<div class="box"><div class="hdr">Uang Real (fisik)</div><input id="kReal" class="inline-money" placeholder="Rp. 0"/></div>
+<div class="box"><div class="hdr">Selisih (Real − Laci)</div><div class="val align-right" id="kSelisih">Rp. 0</div><div class="sub"><span id="kSelisihTag" class="badge">-</span></div></div>
+<div class="box"><div class="hdr">Aksi</div><button class="btn btn-blue" id="btnPrintReport" type="button" style="display:none">Cetak Laporan Harian</button><div class="sub">Enter di "Uang Real" = cetak</div></div>
+</div>
+<h3 style="margin-top:12px">Input Transaksi</h3>
+<div class="price-wrap">
+<input id="txNama" placeholder="Nama transaksi" style="flex:1" disabled/>
+<input id="txBarang" placeholder="Keterangan (opsional)" style="flex:1" disabled/>
+<input id="txHarga" type="hidden" value="0"/>
+<div class="price-pill" id="pricePill" title="Scroll untuk ubah harga • Dblklik=0">Rp. 0</div>
+</div>
+<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+<button class="btn btn-green" id="addCash" type="button" disabled>Tambah (Cash)</button>
+<button class="btn btn-blue" id="addQris" type="button" disabled>Tambah (QRIS)</button>
+<small class="small">Aktif saat Nama &amp; Harga terisi • Transaksi otomatis tersimpan ke sheet</small>
+</div>
+<table id="txTable"><thead><tr><th>Timestamp</th><th>Kode Transaksi</th><th>Nama Transaksi</th><th>Admin</th><th>Ket.</th><th>Harga</th><th>Metode</th></tr></thead><tbody id="txBody"></tbody></table>
+</section>
+<div class="splitter"></div>
+<section class="card calc-card" id="colRight">
+<div class="calc-surface">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+<div class="brand">Percetakan 21</div>
+<button id="pcSub" style="width:80px;height:60px;border-radius:8px;border:2px solid var(--accent);background:#dc2626;cursor:pointer;font-size:10px;color:#fff;font-weight:800;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;transition:background 0.2s;margin-right:8px" aria-pressed="false">
+<div style="font-size:16px">💡</div>
+<div style="font-size:8px;text-align:center;line-height:1">KALKULATOR<br>DISKON</div>
+</button>
+</div>
+<div class="small" style="margin-bottom:8px;color:#000">Transparan &amp; cepat — kalkulator auto diskon.</div>
+<div class="grid-5">
+<div class="field"><label for="pcQty">Lembar</label><input id="pcQty" class="ipt" type="number" min="1" value="50" inputmode="numeric"></div>
+<div class="field"><label for="pcCopy">Rangkap</label><input id="pcCopy" class="ipt" type="number" min="1" value="1" inputmode="numeric"></div>
+<div class="field"><label for="pcType">Jenis Print</label><select id="pcType" class="ipt"><option value="A4 Standar">A4 Standar</option><option value="A4 PPT 2 Slide">A4 PPT 2 Slide</option><option value="A3 Standar">A3 Standar</option><option value="F4 Standar">F4 Standar</option><option>A4 Full Color</option><option>F4 Full Color</option><option>Pas Foto</option><option>Map Bening</option><option>Jarak Ongkir Maxim</option><option>Jilid Lakban</option><option>Ong. Lipat Leaflet</option><option>Jilid Antero Biasa</option><option>Antero Laminating</option><option>ATK Campur x Rp</option><option>Penjepit Kecil</option><option>Penjepit Sedang</option><option>Leaflet 1 Sisi</option><option>Leaflet 2 Sisi</option></select></div>
+<div class="field"><label>Harga Satuan</label><input id="autoHarga" class="ipt harga" type="text" readonly placeholder="Auto" value=""></div>
+<div class="field"><label>&nbsp;</label><button id="pcAddRow" class="btn" title="Tambah">+</button></div>
+</div>
+<div class="grid-5" style="margin-top:10px">
+<div class="field"><label for="manualQty">Lembar</label><input id="manualQty" class="ipt" type="number" min="1" value="1" inputmode="numeric"></div>
+<div class="field"><label for="manualCopy">Rangkap</label><input id="manualCopy" class="ipt" type="number" min="1" value="1" inputmode="numeric"></div>
+<div class="field"><label for="manualName">Jenis / Nama</label><input id="manualName" class="ipt" type="text" placeholder="cth: Pulpen, Map Merah"></div>
+<div class="field"><label for="manualUnitPrice">Harga Satuan</label><input id="manualUnitPrice" class="ipt harga" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="cth: 2000 atau 2k"></div>
+<div class="field"><label>&nbsp;</label><button id="manualAdd" class="btn" title="Tambah Manual">+</button></div>
+</div>
+<div id="receipt" style="margin-top:8px">
+  <div style="text-align:left;margin-bottom:8px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+      <div style="width:50px;height:50px;border-radius:8px; border: 3px double var(--accent); display:flex; align-items:center; justify-content:center; font-weight:900; font-size:16px; color:var(--accent-600); flex-shrink: 0;">
+        NOTA
+      </div>
+      <div>
+        <div style="font-weight:900;font-style:italic;font-size:16px;color:var(--accent-600)!important">Percetakan 21</div>
+        <div style="font-style:italic;font-size:14px;color:#000!important">"Pilihan Tepat Cetak Mencetak"</div>
+      </div>
+      </div>
+    <div class="small" style="font-size:13px">Jl. Perintis Kemerdekaan Km. 11 • 📞 0852-1021-0997 — Percetakan, Print Murah, Stempel, Digital Printing, Jilid, Sticker, Nota, Invoice, Spanduk, Plakat, Cetak Artpaper A3, Brosur, Undangan dan Berbagai macam jenis Cetakan Lainnya.</div>
+  </div>
+</div>
+<div class="info" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+  <label for="pcTuan"><b>Tuan :</b></label>
+  <input id="pcTuan" class="ipt" type="text" style="max-width:200px">
+  
+  <label for="pcNoHP" style="margin-left:10px"><b>No. HP :</b></label>
+  <input id="pcNoHP" class="ipt" type="text" style="max-width:150px" placeholder="08...">
+  
+  <span style="margin-left:10px"><b>Tanggal :</b> <span id="pcTanggal"></span></span>
+  <span><b>Pukul :</b> <span id="pcPukul"></span></span>
+</div>
+<div class="table-shell">
+<table><thead><tr><th>Rangkap</th><th>Qty</th><th>Jenis / Nama</th><th>Harga Satuan</th><th>Jumlah</th><th>Aksi</th></tr></thead><tbody id="pcBody"></tbody></table>
+<div class="small" style="text-align:left;line-height:1.4;margin:10px 0 6px;padding:6px 10px;color:#000;background:#f5f9ff;border-top:1px solid #dbe2ef;border-radius:0 0 10px 10px"><b>Nb :</b> <span id="subNote">Menggunakan Kalkulator Auto, Banyak Auto Diskon Siap Harga Langganan.</span> <span style="font-size:10px;opacity:0.7">*Total akan dibulatkan ke seribu rupiah</span></div>
+</div>
+<div class="total-row" style="margin-top:6px;padding:20px;border-left:4px double var(--accent);border-right:4px double var(--accent);border-top:4px double var(--accent);border-bottom:4px double var(--accent);border-radius:8px;position:relative;min-height:160px">
+<button id="pcSave" type="button" class="btn" style="position:absolute;top:-50px;right:0;height:40px;width:auto;font-size:12px;background:var(--accent);color:#fff;border:2px solid var(--accent)">💾 Simpan</button>
+<button id="pcPrintSave" type="button" class="btn" style="position:absolute;top:-50px;right:100px;height:40px;width:auto;font-size:12px;background:#4CAF50;color:#fff;border:2px solid #4CAF50">🖨️ Cetak & Simpan</button>
+<div style="display:flex;justify-content:space-between;align-items:center">
+<div style="display:flex;flex-direction:column;gap:8px;margin-left:100px">
+  
+  <div style="height:60px"></div>
+  <div style="text-align:center">
+    <div id="pcClear" style="font-size:14px;font-weight:800;color:#000;cursor:pointer">  </div>
+  </div>
+</div>
+<div style="margin-left:50px;display:flex;flex-direction:column;gap:6px;align-items:flex-end">
+<div style="display:flex;align-items:center;gap:8px">
+<input type="checkbox" id="chkLunas" style="width:16px;height:16px;cursor:pointer;margin:0">
+<label style="font-size:13px;font-weight:700;color:#000;margin:0"><b>Total Rp.</b></label>
+<input id="pcTotal" class="total-box" readonly value="Rp. 0" inputmode="numeric" style="width:150px;height:32px"/>
+</div>
+<div style="display:flex;align-items:center;gap:8px">
+<div style="width:16px"></div>
+<label style="font-size:13px;font-weight:700;color:#000"><b>Panjar Rp.</b></label>
+<input id="pcPanjar" class="total-box" type="text" placeholder="0" inputmode="numeric" style="width:150px;height:32px"/>
+</div>
+<div style="display:flex;align-items:center;gap:8px">
+<div style="width:16px"></div>
+<label style="font-size:13px;font-weight:700;color:#000"><b>Sisa Rp.</b></label>
+<input id="pcSisa" class="total-box" type="text" readonly value="" style="width:150px;height:32px"/>
+</div>
+</div>
+</div>
+<div style="position:absolute;bottom:20px;left:20px">
+<div style="display:flex;gap:8px;align-items:center">
+<label for="pcCatatan" style="font-size:13px;font-weight:700;color:#000;white-space:nowrap"><b>Catatan:</b></label>
+<input id="pcCatatan" class="ipt" type="text" style="width:200px;height:32px;font-size:13px;background:#fff;color:#000;border:1px solid #ccc" placeholder="...">
+</div>
+</div>
+<div id="paidStamp" style="display:none;position:absolute;top:50%;left:40%;transform:translate(-50%,-50%) rotate(-15deg);font-size:32px;font-weight:900;color:#dc2626;border:3px solid #dc2626;padding:6px 16px;border-radius:6px;opacity:0.85;text-shadow:2px 2px 4px rgba(0,0,0,0.2);font-family:Impact,Arial Black,sans-serif;letter-spacing:2px;background:rgba(255,255,255,0.9)">LUNAS</div>
+
+<div style="position:absolute; top: calc(50% - 30px); left: calc(40% + 30px); transform: translate(-50%, -50%) scale(0.9); font-size:12px; font-weight:800; color:#000; opacity: 0.7;">
+    Admin: <span id="adminName">Admin 2</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<div class="toast" id="toast"></div>
+<section id="fullReport"></section>
+<script src="js/script.js"></script>
+</body>
+</html>
